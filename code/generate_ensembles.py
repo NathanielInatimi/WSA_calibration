@@ -48,8 +48,8 @@ if __name__ == "__main__":
     df_filenames = df_filenames.sort_index()
 
     # specify date range of WAS solutions to generate ensembles for
-    start_date = datetime.datetime(2019,10,1)
-    end_date = datetime.datetime(2019,10,3)
+    start_date = datetime.datetime(2019,10,10)
+    end_date = datetime.datetime(2019,10,30)
 
     # want only 1 solution per day/as close to daily as possible
     date_range = pd.date_range(start_date, end_date, freq='D') 
@@ -67,8 +67,8 @@ if __name__ == "__main__":
     fname_list = unique_files['file_string'].to_list()
 
     #ensemble params
-    ensemble_size = 10
-    sigma_latitude = 5 # degrees
+    ensemble_size = 100
+    sigma_latitude = 10 # degrees
     forecast_window = 10 * u.day
     r_min = 21.5*u.solRad
 
@@ -82,10 +82,10 @@ if __name__ == "__main__":
     # initialise parallel processing for ensemble generation
     #multiprocessing.set_start_method('spawn')
 
-    with multiprocessing.Pool(processes=2) as pool:
+    with multiprocessing.Pool(processes=4) as pool:
         pool.map(hef.generate_ensemble_forecast, input_params)
 
     t2 = time.time()
 
-    print(f'Ensembles took {t2-t1} seconds to generate')
+    print(f'{len(fname_list)} size {ensemble_size} ensembles took {t2-t1:.2f} seconds to generate ({(t2-t1)/60:.2f} mins)')
     
