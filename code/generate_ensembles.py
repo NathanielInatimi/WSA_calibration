@@ -13,7 +13,7 @@ import time
 
 if __name__ == "__main__":
 
-    latitudes_to_run = np.linspace(0,10,3)
+    latitudes_to_run = np.linspace(0,10,1)
 
     t0 = time.time()
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
         fname_list = unique_files['file_string'].to_list()
 
         # Define ensemble params
-        ensemble_size = 3
+        ensemble_size = 1
         forecast_window = 10 * u.day
         r_min = 21.5*u.solRad
 
