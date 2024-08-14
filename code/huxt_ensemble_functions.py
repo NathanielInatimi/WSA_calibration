@@ -66,9 +66,14 @@ def wsa_date_from_string(file_string):
     # Define regular expression patterns to extract the date from file string
     pattern = r'21.5rs_(\d{4})(\d{2})(\d{2})(\d{2})' # file string 1
     pattern2 = r'%2F(\d{4})%2F(\d{1,2})%2F(\d{1,2})%2F' # file string 2
+    pattern3 = r'gong_(\d{4})(\d{2})(\d{2})(\d{2})' # file string 3
+
+    # Match patterns for different WSA file string formats
     match = re.search(pattern, file_string)
     match2 = re.search(pattern2, file_string)
+    match3 = re.search(pattern3, file_string)
     
+    # Check each match to find correct format
     if match:
         year, month, day, hour = match.groups()
         date_string = f'{year}-{month}-{day}--{hour}'
@@ -77,6 +82,10 @@ def wsa_date_from_string(file_string):
         year, month, day = match2.groups()
         date_string = f'{year}-{month}-{day}'
         date_obj = datetime.datetime.strptime(date_string, '%Y-%m-%d')
+    elif match3:
+        year, month, day, hour = match3.groups()
+        date_string = f'{year}-{month}-{day}--{hour}'
+        date_obj = datetime.datetime.strptime(date_string, '%Y-%m-%d--%H')
     else:
         print(f"No date found in the string: {file_string}")
 

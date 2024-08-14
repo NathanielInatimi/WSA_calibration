@@ -12,80 +12,96 @@ import time
 #def main():
 
 if __name__ == "__main__":
+
+    latitudes_to_run = np.linspace(0,10,3)
+
+    t0 = time.time()
+
+    for sigma_latitude in latitudes_to_run:
     
-    # get all WSA files with specified keywords
-    directory_path = H._setup_dirs_()['boundary_conditions']
-    wsa_file_words = ['wsa_vel'] # keywords to filter for in coronal model file directory
-    wsa_fnames = hef.get_files_containing_words(directory_path, wsa_file_words)
+        # get all WSA files with specified keywords
+        directory_path = H._setup_dirs_()['boundary_conditions']
+        wsa_file_words = ['wsa_gong'] # keywords to filter for in coronal model file directory
+        wsa_fnames = hef.get_files_containing_words(directory_path, wsa_file_words)
 
-    dates = []
-    filenames = []
+        dates = []
+        filenames = []
 
-    # creating list of filenames of WSA solutions for generating/reading in ensembles
-    for filename in wsa_fnames:
+        # creating list of filenames of WSA solutions for generating/reading in ensembles
+        for filename in wsa_fnames:
 
-        # Define regular expression patterns to extract the date from file string
-        pattern = r'21.5rs_(\d{4})(\d{2})(\d{2})(\d{2})'
-        pattern2 = r'%2F(\d{4})%2F(\d{1,2})%2F(\d{1,2})%2F'
-        match = re.search(pattern, filename)
-        match2 = re.search(pattern2, filename)
-        
-        if match:
-            year, month, day, hour = match.groups()
-            date_string = f'{year}-{month}-{day}--{hour}'
-            dates.append(datetime.datetime(int(year), int(month), int(day), int(hour)))
-            filenames.append(filename)
-        elif match2:
-            year, month, day = match2.groups()
-            date_string = f'{year}-{month}-{day}'
-            dates.append(datetime.datetime(int(year), int(month), int(day), int(0)))
-            filenames.append(filename)
-        else:
-            print(f"No date found in the string: {filename}")
+            # Define regular expression patterns to extract the date from file string
+            pattern = r'21.5rs_(\d{4})(\d{2})(\d{2})(\d{2})'
+            pattern2 = r'%2F(\d{4})%2F(\d{1,2})%2F(\d{1,2})%2F'
+            pattern3 = r'gong_(\d{4})(\d{2})(\d{2})(\d{2})'
 
-    # index filenames by date
-    df_filenames = pd.DataFrame({'file_string' : filenames}, index = dates)
-    df_filenames = df_filenames.sort_index()
+            # Match patterns for different WSA file string formats
+            match = re.search(pattern, filename)
+            match2 = re.search(pattern2, filename)
+            match3 = re.search(pattern3, filename)
+            
+            if match:
+                year, month, day, hour = match.groups()
+                date_string = f'{year}-{month}-{day}--{hour}'
+                dates.append(datetime.datetime(int(year), int(month), int(day), int(hour)))
+                filenames.append(filename)
+            elif match2:
+                year, month, day = match2.groups()
+                date_string = f'{year}-{month}-{day}'
+                dates.append(datetime.datetime(int(year), int(month), int(day), int(0)))
+                filenames.append(filename)
+            elif match3:
+                year, month, day, hour = match3.groups()
+                date_string = f'{year}-{month}-{day}--{hour}'
+                dates.append(datetime.datetime(int(year), int(month), int(day), int(hour)))
+                filenames.append(filename)
+            else:
+                print(f"No date found in the string: {filename}")
 
-    # specify date range of WAS solutions to generate ensembles for
-    start_date = datetime.datetime(2019,10,10)
-    end_date = datetime.datetime(2019,10,30)
+        # index filenames by date
+        df_filenames = pd.DataFrame({'file_string' : filenames}, index = dates)
+        df_filenames = df_filenames.sort_index()
 
-    # want only 1 solution per day/as close to daily as possible
-    date_range = pd.date_range(start_date, end_date, freq='D') 
+        # specify date range of WAS solutions to generate ensembles for
+        start_date = datetime.datetime(2019,10,1)
+        end_date = datetime.datetime(2023,10,10)
 
-    # Finding closest indices
-    indexer = df_filenames.index.get_indexer(date_range, method='nearest')
+        # want only 1 solution per day/as close to daily as possible
+        date_range = pd.date_range(start_date, end_date, freq='D') 
 
-    # Retrieving the closest rows
-    closest_files = df_filenames.iloc[indexer]
+        # Finding closest indices
+        indexer = df_filenames.index.get_indexer(date_range, method='nearest')
 
-    # Dropping duplicates to keep only unique rows
-    unique_files = closest_files[~closest_files.index.duplicated(keep='first')]
+        # Retrieving the closest rows
+        closest_files = df_filenames.iloc[indexer]
 
-    # list of WSA filenames within date_range
-    fname_list = unique_files['file_string'].to_list()
+        # Dropping duplicates to keep only unique rows
+        unique_files = closest_files[~closest_files.index.duplicated(keep='first')]
 
-    #ensemble params
-    ensemble_size = 100
-    sigma_latitude = 10 # degrees
-    forecast_window = 10 * u.day
-    r_min = 21.5*u.solRad
+        # list of WSA filenames within date_range
+        fname_list = unique_files['file_string'].to_list()
 
-    #create sets of input params for parallel processing
-    input_params = [(fname, ensemble_size, sigma_latitude, forecast_window, r_min) for fname in fname_list]
+        # Define ensemble params
+        ensemble_size = 3
+        forecast_window = 10 * u.day
+        r_min = 21.5*u.solRad
 
-    print('parameters initialised')
+        #create sets of input params for parallel processing
+        input_params = [(fname, ensemble_size, sigma_latitude, forecast_window, r_min) for fname in fname_list]
 
-    t1 = time.time()
+        print(f'sigma latitude = {sigma_latitude}: parameters initialised')
 
-    # initialise parallel processing for ensemble generation
-    #multiprocessing.set_start_method('spawn')
+        t1 = time.time()
 
-    with multiprocessing.Pool(processes=4) as pool:
-        pool.map(hef.generate_ensemble_forecast, input_params)
+        # initialise parallel processing for ensemble generation
+        #multiprocessing.set_start_method('spawn')
 
-    t2 = time.time()
+        with multiprocessing.Pool(processes=4) as pool:
+            pool.map(hef.generate_ensemble_forecast, input_params)
 
-    print(f'{len(fname_list)} size {ensemble_size} ensembles took {t2-t1:.2f} seconds to generate ({(t2-t1)/60:.2f} mins)')
+        t2 = time.time()
+
+        print(f'{len(fname_list)} size {ensemble_size} ensembles took {t2-t1:.2f} seconds to generate ({(t2-t1)/60:.2f} mins)')
     
+    t4 = time.time()
+    print(f'Ensembles for {len(latitudes_to_run)} latitude scale parameter generated which took {(t4-t0)/60:2f} minutes')
