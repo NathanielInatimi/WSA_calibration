@@ -249,7 +249,7 @@ def generate_ensemble_forecast(params):
 
     # Generate perturbed inner boundary paths
     perturbed_boundary_paths = gen_ensemble_perturbed_boundary_path(E_lat = E_lat.value, longitudes=WSA_vr_longs.value, 
-                                                            ensemble_size = ensemble_size, sigma_latitude = np.radians(sigma_latitude), random_seed = random_seed)
+                                                            ensemble_size = ensemble_size, sigma_latitude = sigma_latitude, random_seed = random_seed)
 
     # Generate ensemble of interpolated near-sun velocity boundaries
     velocity_boundaries = [extract_interpolated_velocity_boundary(interpolated_map_solution=INT, boundary=boundary.value, longitudes=WSA_vr_longs.value) 
@@ -372,7 +372,7 @@ def interpolate_and_resample(observed_data, forecast_series):
         interpolated_forecast_output (array) : resampled forecast time series onto observed data time step
 
     """
-    Int = scipy.interpolate.CubicSpline(forecast_series.index, forecast_series['vsw'])
+    Int = scipy.interpolate.CubicSpline(forecast_series.index, forecast_series['vsw'], bc_type = 'periodic')
     
     data_time_axis = observed_data.index
 
@@ -410,8 +410,70 @@ def gen_ranked_ensemble(ensemble_members, observed_data):
 
     return summed_ranks
 
-def perturb_longitude(longitudinal_disp, ensemble_member):
+# def perturb_longitude(longitudinal_disp, ensemble_member):
 
+#     """
+#     perturbs an ensemble member longitudinally
+#     longitududinal perturbation is equivalent to a temporal displacement of ensemble member
+
+#     Args:
+#         longitudinal_disp (float) : angular displacement for longitudinal perturbation in units of radians
+#         ensemble_member (dataFrame) : single ensemble member dataframe
+    
+#     Returns:
+#         perturbed_ensemble_member (dataFrame) : ensemble member shifted in time related by the longitudinal displacement
+
+#     """
+
+#     # convert angular displacement into a temporal displacement
+#     carrington_rotation = 27.2753*u.day
+#     long_pert_dt = ((longitudinal_disp * carrington_rotation.value) / (2*np.pi)) * u.day
+
+#     # Ensure that the DataFrame has a datetime index
+#     if not isinstance(ensemble_member.index, pd.DatetimeIndex):
+#         raise ValueError("DataFrame must have a datetime index")
+    
+#     shift_amount = int(long_pert_dt.to(u.second).value) # Convert shift amount into seconds
+
+#     # Convert datetime index into integers
+#     numeric_index = ensemble_member.index.astype('int64') // 10**9 # Floor division to convert into seconds (UNIX int datetime is in nanoseconds)
+#     numeric_index = numeric_index.to_numpy()
+
+#     # Calculate the new index by shifting with wrapping
+#     shifted_index = numeric_index + shift_amount
+
+#     # Generate boolean array which captures elements above and below max/min indices
+#     wrap_mask = (shifted_index < numeric_index.min()) | (shifted_index > numeric_index.max())
+  
+#     if shift_amount < 0:
+#         # If negative shift amount (i.e. elements will be below min index)
+#         shifted_index[wrap_mask] = shifted_index[wrap_mask] + (shifted_index.max() - shifted_index.min())
+
+#     elif shift_amount > 0:
+#         # If positive shift amount (i.e. elements will be above max index)  
+#         shifted_index[wrap_mask] = shifted_index[wrap_mask] - (shifted_index.max() - shifted_index.min())
+
+#     else:
+#         # No change -- preserve original index
+#         shifted_index = numeric_index
+
+#     # Convert back to datetime index
+#     new_converted_index = pd.to_datetime(shifted_index, unit='s')
+
+#     # Sort the DataFrame based on the new index
+#     df_shifted = ensemble_member.copy()
+#     df_shifted = (df_shifted.sort_index().set_index(new_converted_index)).sort_index()
+#     df_shifted = df_shifted[~(df_shifted.index).duplicated()].copy()
+
+#     # Interpolate shifted dataframe back onto orignal datetime axis (for more ease in later analysis)
+#     Int = scipy.interpolate.CubicSpline(df_shifted.index, df_shifted['vsw'], bc_type = 'periodic')
+#     data_time_axis = ensemble_member.index
+#     interpolated_forecast_output = Int(data_time_axis)
+    
+#     return pd.DataFrame({'vsw':interpolated_forecast_output}, index = data_time_axis)
+
+def perturb_longitude(longitudinal_disp, ensemble_member):
+    
     """
     perturbs an ensemble member longitudinally
     longitududinal perturbation is equivalent to a temporal displacement of ensemble member
@@ -421,56 +483,34 @@ def perturb_longitude(longitudinal_disp, ensemble_member):
         ensemble_member (dataFrame) : single ensemble member dataframe
     
     Returns:
-        perturbed_ensemble_member (dataFrame) : ensemble member shifted in time related by the longitudinal displacement
+        shifted_ensemble_member (dataFrame) : ensemble member shifted in time related by the longitudinal displacement
 
     """
 
     # convert angular displacement into a temporal displacement
-    carrington_rotation = 27.2753*u.day
-    long_pert_dt = ((longitudinal_disp * carrington_rotation.value) / (2*np.pi)) * u.day
+    carrington_rotation = 27.2753
+    long_pert_dt = ((longitudinal_disp * carrington_rotation) / (2*np.pi)) 
 
     # Ensure that the DataFrame has a datetime index
     if not isinstance(ensemble_member.index, pd.DatetimeIndex):
         raise ValueError("DataFrame must have a datetime index")
     
-    shift_amount = int(long_pert_dt.to(u.second).value) # Convert shift amount into seconds
+    # Timedelta to shift time axis
+    time_shift = pd.Timedelta(long_pert_dt, unit='D')
 
-    # Convert datetime index into integers
-    numeric_index = ensemble_member.index.astype('int64') // 10**9 # Floor division to convert into seconds (UNIX int datetime is in nanoseconds)
-    numeric_index = numeric_index.to_numpy()
-
-    # Calculate the new index by shifting with wrapping
-    shifted_index = numeric_index + shift_amount
-
-    # Generate boolean array which captures elements above and below max/min indices
-    wrap_mask = (shifted_index < numeric_index.min()) | (shifted_index > numeric_index.max())
-  
-    if shift_amount < 0:
-        # If negative shift amount (i.e. elements will be below min index)
-        shifted_index[wrap_mask] = shifted_index[wrap_mask] + (shifted_index.max() - shifted_index.min())
-
-    elif shift_amount > 0:
-        # If positive shift amount (i.e. elements will be above max index)  
-        shifted_index[wrap_mask] = shifted_index[wrap_mask] - (shifted_index.max() - shifted_index.min())
-
-    else:
-        # No change -- preserve original index
-        shifted_index = numeric_index
-
-    # Convert back to datetime index
-    new_converted_index = pd.to_datetime(shifted_index, unit='s')
-
-    # Sort the DataFrame based on the new index
-    df_shifted = ensemble_member.copy()
-    df_shifted = (df_shifted.sort_index().set_index(new_converted_index)).sort_index()
-    df_shifted = df_shifted[~(df_shifted.index).duplicated()].copy()
-
-    # Interpolate shifted dataframe back onto orignal datetime axis (for more ease in later analysis)
-    Int = scipy.interpolate.CubicSpline(df_shifted.index, df_shifted['vsw'])
-    data_time_axis = ensemble_member.index
-    interpolated_forecast_output = Int(data_time_axis)
+    # Interpolate ensemble member
+    INT = scipy.interpolate.CubicSpline(ensemble_member.index, ensemble_member['vsw'])
     
-    return pd.DataFrame({'vsw':interpolated_forecast_output}, index = data_time_axis)
+    # Shift index
+    shifted_index = test_ens_member.index + time_shift
+
+    # Interpolate timeseries onto shifted time index
+    shifted_timeseries = INT(shifted_index)
+
+    # Place interpolated timeseries onto original time index
+    shifted_ensemble_member = pd.DataFrame({'vsw':shifted_timeseries}, index = ensemble_member.index)
+
+    return shifted_ensemble_member
 
 def generate_ensemble_statistics(ensemble_members):
     """
@@ -750,7 +790,7 @@ def perturb_ensemble_longitudinally(ensemble_members, sigma_longitude, ensemble_
 
     lp_ens_members = []
     for ens, long_disp in zip(ensemble_members, longitudinal_displacement):
-        shifted_df = perturb_longitude(longitudinal_disp=long_disp, ensemble_member=ens)
+        shifted_df = perturb_longitude(longitudinal_disp=long_disp, ensemble_member=ens['vsw'])
         lp_ens_members.append(shifted_df)
 
     return lp_ens_members
