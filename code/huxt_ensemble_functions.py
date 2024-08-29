@@ -172,7 +172,17 @@ def gen_ensemble_perturbed_boundary_path(E_lat, longitudes, ensemble_size, sigma
     perturbed_paths = []
     for theta_max, wave_no, phase_off in zip(lat_deviations, wave_numbers, phase_offsets):
 
-        perturbed_paths.append(E_lat + theta_max * np.sin(wave_no * (longitudes) + phase_off))
+        path = E_lat + theta_max * np.sin(wave_no * (longitudes) + phase_off)
+
+        #cut off values above max lat range
+        upper_mask = path > np.radians(89)
+        lower_mask = path < -np.radians(89)
+
+        # Flat cut-off
+        path[upper_mask] = np.radians(89)
+        path[lower_mask] = -np.radians(89)
+
+        perturbed_paths.append(path)
 
     return perturbed_paths * u.rad
 
@@ -372,7 +382,7 @@ def interpolate_and_resample(observed_data, forecast_series):
         interpolated_forecast_output (array) : resampled forecast time series onto observed data time step
 
     """
-    Int = scipy.interpolate.CubicSpline(forecast_series.index, forecast_series['vsw'], bc_type = 'periodic')
+    Int = scipy.interpolate.CubicSpline(forecast_series.index, forecast_series['vsw'])
     
     data_time_axis = observed_data.index
 
@@ -466,7 +476,7 @@ def gen_ranked_ensemble(ensemble_members, observed_data):
 #     df_shifted = df_shifted[~(df_shifted.index).duplicated()].copy()
 
 #     # Interpolate shifted dataframe back onto orignal datetime axis (for more ease in later analysis)
-#     Int = scipy.interpolate.CubicSpline(df_shifted.index, df_shifted['vsw'], bc_type = 'periodic')
+#     Int = scipy.interpolate.CubicSpline(df_shifted.index, df_shifted['vsw'])
 #     data_time_axis = ensemble_member.index
 #     interpolated_forecast_output = Int(data_time_axis)
     
@@ -499,10 +509,11 @@ def perturb_longitude(longitudinal_disp, ensemble_member):
     time_shift = pd.Timedelta(long_pert_dt, unit='D')
 
     # Interpolate ensemble member
-    INT = scipy.interpolate.CubicSpline(ensemble_member.index, ensemble_member['vsw'])
+    INT = scipy.interpolate.CubicSpline(ensemble_member.index, ensemble_member)
+    ### Try a linear interpolation
     
     # Shift index
-    shifted_index = test_ens_member.index + time_shift
+    shifted_index = ensemble_member.index + time_shift
 
     # Interpolate timeseries onto shifted time index
     shifted_timeseries = INT(shifted_index)
