@@ -51,6 +51,7 @@ def get_files_containing_words(directory, keywords):
     return filtered_files
 
 
+
 def wsa_date_from_string(file_string):
 
     """
@@ -67,11 +68,13 @@ def wsa_date_from_string(file_string):
     pattern = r'21.5rs_(\d{4})(\d{2})(\d{2})(\d{2})' # file string 1
     pattern2 = r'%2F(\d{4})%2F(\d{1,2})%2F(\d{1,2})%2F' # file string 2
     pattern3 = r'gong_(\d{4})(\d{2})(\d{2})(\d{2})' # file string 3
+    pattern4 = r'(\d{4})(\d{2})(\d{2})(\d{2})(\d{1})4R000_gongz' #file string 4
 
     # Match patterns for different WSA file string formats
     match = re.search(pattern, file_string)
     match2 = re.search(pattern2, file_string)
     match3 = re.search(pattern3, file_string)
+    match4 = re.search(pattern4, file_string)
     
     # Check each match to find correct format
     if match:
@@ -86,10 +89,15 @@ def wsa_date_from_string(file_string):
         year, month, day, hour = match3.groups()
         date_string = f'{year}-{month}-{day}--{hour}'
         date_obj = datetime.datetime.strptime(date_string, '%Y-%m-%d--%H')
+    elif match4:
+        year, month, day, hour, _ = match4.groups()
+        date_string = f'{year}-{month}-{day}--{hour}'
+        date_obj = datetime.datetime.strptime(date_string, '%Y-%m-%d--%H')
     else:
         print(f"No date found in the string: {file_string}")
 
     return date_string, date_obj
+
 
 def earth_latitude_wsa(filename):
 

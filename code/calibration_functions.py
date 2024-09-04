@@ -42,6 +42,18 @@ def save_ROC_by_longitude_to_file(ROC_set_list, era_key, sigma_longitude, lead_t
     np.savetxt(fname = fname, X = ROC_set_list, delimiter = ',')
     return
 
+def save_REF_by_longitude_to_file(REF_set_list, era_key, sigma_longitude, lead_time, threshold):
+    fname = f'BS_{era_key}_{int(sigma_longitude)}_{lead_time}_lead_{int(threshold)}.csv'
+    file_path = os.path.abspath(os.path.join(os.pardir,'data','refinement_scores',fname))
+    np.savetxt(fname = file_path, X = REF_set_list, delimiter = ',')
+    return
+
+def save_CAL_by_longitude_to_file(CAL_set_list, era_key, sigma_longitude, lead_time, threshold):
+    fname = f'BS_{era_key}_{int(sigma_longitude)}_{lead_time}_lead_{int(threshold)}.csv'
+    file_path = os.path.abspath(os.path.join(os.pardir,'data','calibration_scores',fname))
+    np.savetxt(fname = file_path, X = CAL_set_list, delimiter = ',')
+    return
+
 
 def read_chi_arr_longitude_file(era_key, sigma_longitude, lead_time):
     fname = f'C:\\Users\\ct832900\\Desktop\\Research_Code\\WSA_calibration\\data\\rank_analysis\\rank_hist_{era_key}_{sigma_longitude}_{lead_time}_lead.csv'
@@ -361,3 +373,35 @@ def parallel_evaluation(eval_params):
     print(f'sigma_longitude = {sigma_longitude} set evaluated over {t4-t0:.2f} seconds')
 
     return
+
+def compute_brier_components(forecasts, observations, num_bins=10):
+
+    # Create bins for the forecast probabilities
+    bins = np.linspace(0, 1, num_bins + 1)
+    
+    # Digitize the forecast probabilities into bins
+    bin_indices = np.digitize(forecasts, bins) - 1
+
+    # Initialise arrays to store the average forecast probability and observed frequency
+    avg_forecast_probs = np.zeros(num_bins)
+    observed_frequencies = np.zeros(num_bins)
+    bin_counts = np.zeros(num_bins)
+
+    # Calculate average forecast probability and observed frequency for each bin
+    for k in range(num_bins):
+        in_bin = bin_indices == k
+        bin_counts[k] = np.sum(in_bin)
+        if bin_counts[k] > 0:
+            avg_forecast_probs[k] = np.mean(forecasts[in_bin])
+            observed_frequencies[k] = np.mean(observations[in_bin])
+    
+    # # climatlogical base rate --> Used for three-component decomposition IMPLEMENT LATER!!!!
+    # base_rate = np.mean(observations)
+    
+    # Calibration (Reliability) component
+    calibration = np.sum(bin_counts * (avg_forecast_probs - observed_frequencies)**2) / len(forecasts)
+    
+    # Refinement (Resolution + Uncertainty) component
+    refinement = np.sum(bin_counts * (observed_frequencies * (1 - observed_frequencies))) / len(forecasts)
+    
+    return calibration, refinement
