@@ -13,7 +13,7 @@ import time
 
 if __name__ == "__main__":
 
-    latitudes_to_run = np.linspace(0,10,1)
+    latitudes_to_run = [0,5]
 
     t0 = time.time()
 
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     
         # get all WSA files with specified keywords
         directory_path = H._setup_dirs_()['boundary_conditions']
-        wsa_file_words = ['wsa_gong'] # keywords to filter for in coronal model file directory
+        wsa_file_words = ['gongz'] # keywords to filter for in coronal model file directory
         wsa_fnames = hef.get_files_containing_words(directory_path, wsa_file_words)
 
         dates = []
@@ -34,11 +34,14 @@ if __name__ == "__main__":
             pattern = r'21.5rs_(\d{4})(\d{2})(\d{2})(\d{2})'
             pattern2 = r'%2F(\d{4})%2F(\d{1,2})%2F(\d{1,2})%2F'
             pattern3 = r'gong_(\d{4})(\d{2})(\d{2})(\d{2})'
+            pattern4 = r'(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})R000_gongz' 
 
             # Match patterns for different WSA file string formats
             match = re.search(pattern, filename)
             match2 = re.search(pattern2, filename)
             match3 = re.search(pattern3, filename)
+            match4 = re.search(pattern4, filename)
+            
             
             if match:
                 year, month, day, hour = match.groups()
@@ -55,6 +58,11 @@ if __name__ == "__main__":
                 date_string = f'{year}-{month}-{day}--{hour}'
                 dates.append(datetime.datetime(int(year), int(month), int(day), int(hour)))
                 filenames.append(filename)
+            elif match4:
+                year, month, day, hour, _ = match4.groups()
+                date_string = f'{year}-{month}-{day}--{hour}'
+                dates.append(datetime.datetime(int(year), int(month), int(day), int(hour)))
+                filenames.append(filename)
             else:
                 print(f"No date found in the string: {filename}")
 
@@ -63,8 +71,8 @@ if __name__ == "__main__":
         df_filenames = df_filenames.sort_index()
 
         # specify date range of WAS solutions to generate ensembles for
-        start_date = datetime.datetime(2019,10,1)
-        end_date = datetime.datetime(2023,10,10)
+        start_date = datetime.datetime(2020,1,1)
+        end_date = datetime.datetime(2021,1,1)
 
         # want only 1 solution per day/as close to daily as possible
         date_range = pd.date_range(start_date, end_date, freq='D') 
@@ -82,12 +90,13 @@ if __name__ == "__main__":
         fname_list = unique_files['file_string'].to_list()
 
         # Define ensemble params
-        ensemble_size = 1
+        ensemble_size = 10
         forecast_window = 10 * u.day
         r_min = 21.5*u.solRad
+        year = 2020
 
         #create sets of input params for parallel processing
-        input_params = [(fname, ensemble_size, sigma_latitude, forecast_window, r_min) for fname in fname_list]
+        input_params = [(fname, ensemble_size, sigma_latitude, forecast_window, r_min, year) for fname in fname_list]
 
         print(f'sigma latitude = {sigma_latitude}: parameters initialised')
 

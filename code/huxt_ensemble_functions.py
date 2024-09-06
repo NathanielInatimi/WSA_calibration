@@ -237,6 +237,7 @@ def generate_ensemble_forecast(params):
     sigma_latitude = np.radians(params[2])
     forecast_window = params[3]
     r_min = params[4] # WSA at 21.5 rS
+    year = params[5]
 
     _, date_obj = wsa_date_from_string(filename)
     print(f'{_} now generating')
@@ -290,12 +291,12 @@ def generate_ensemble_forecast(params):
         ensemble_members.append(df_earth_series.copy())
 
     
-    save_ens_to_cdf(ensemble_members=ensemble_members, date_string=init_wsa_date_str, sigma_latitude=params[2], ensemble_size=params[1], coronal_model='wsa')
+    save_ens_to_cdf(ensemble_members=ensemble_members, date_string=init_wsa_date_str, sigma_latitude=params[2], ensemble_size=params[1], coronal_model='wsa', year=year)
 
     return 
 
 
-def save_ens_to_cdf(ensemble_members, date_string, sigma_latitude, ensemble_size, coronal_model):
+def save_ens_to_cdf(ensemble_members, date_string, sigma_latitude, ensemble_size, coronal_model, year):
     """
     saves an ensemble set to a netcdf4 file.
     saved files indexed by ensemble size, forecast start time, sigma_latitude, and the coronal model used to generate the ensemble
@@ -316,7 +317,7 @@ def save_ens_to_cdf(ensemble_members, date_string, sigma_latitude, ensemble_size
     ds_ = xr.concat([df.to_xarray() for df in ensemble_members], dim="ensemble_members")
     
     # Create/find folder indexed by sigma_latitude, ensemble_size, and coronal_model
-    dir_name = f'ens_{int(sigma_latitude)}_{ensemble_size}_{coronal_model}'
+    dir_name = f'ens_{int(sigma_latitude)}_{ensemble_size}_{coronal_model}_{year}'
 
     # create directory to save ensemble to
     directory_path = os.path.abspath(os.path.join(os.pardir,'data','ensembles'))

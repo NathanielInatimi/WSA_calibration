@@ -79,11 +79,13 @@ def gen_ranked_ensemble(ensemble_members, observed_data):
 
     return summed_ranks
 
-def get_filenames_between_dates(start_date, end_date, sigma_latitude, ensemble_size):
+def get_filenames_between_dates(start_date, end_date, sigma_latitude, ensemble_size, year_str):
+
+    year_id = {'2023':'', '2020':'_2020'} # ID for finding files run for 2023/2020 WSA solutions (bit of a bodge should standardise)
 
     # get all ensemble netCDF file strings of specified parameters
     ensemble_directory_path = os.path.abspath(os.path.join(os.pardir,'data','ensembles'))
-    ensemble_file_words = [f'ens_{int(sigma_latitude)}_{ensemble_size}'] # keywords to filter ensemble set directory
+    ensemble_file_words = [f'ens_{int(sigma_latitude)}_{ensemble_size}{year_id[year_str]}'] # keywords to filter ensemble set directory
     ensemble_fname = hef.get_files_containing_words(ensemble_directory_path, ensemble_file_words)[0]
 
     all_files = os.listdir(os.path.abspath(os.path.join(os.pardir,'data','ensembles',ensemble_fname))) # list of all files inside ensemble directory
@@ -224,10 +226,10 @@ def ICMElist(filepath = None):
 
     """
     
-    if filepath is None:
-        datapath =  system._setup_dirs_()['datapath']
-        filepath = os.path.join(datapath,
-                                'icmetable.csv')
+    # if filepath is None:
+    #     datapath =  system._setup_dirs_()['datapath']
+    #     filepath = os.path.join(datapath,
+    #                             'icmetable.csv')
     
     
     icmes=pd.read_csv(filepath,header=None)
