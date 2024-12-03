@@ -195,7 +195,7 @@ def split_by_lead_time(params, sigma_longitude, max_lead_time, observed_data, fi
 
         # get data for relevant time chunk
         data_chunk = observed_data.loc[lp_ens_members[0].index[0]:lp_ens_members[0].index[-1]]
-        data_chunk = data_chunk.dropna(subset = ['V']) # Remove rows with NaN values
+        #data_chunk = data_chunk.dropna(subset = ['V']) # Remove rows with NaN values
 
         # Resampling ensemble members onto OMNI datastep
         resampled_ens = hef.resample_ensemble_members(ensemble_members=lp_ens_members, observed_data=data_chunk['V'])

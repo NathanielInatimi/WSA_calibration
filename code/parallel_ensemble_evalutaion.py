@@ -26,8 +26,10 @@ if __name__ == "__main__":
     df_ICME = cf.ICMElist("C:\\Users\\ct832900\\Desktop\\Research_Code\\WSA_Calibration\\data\\icmetable.csv")
     df_ICME = df_ICME.set_index('Shock_time')
 
+    year_id = 2023
+
     # Create a list of ICME (start,end) times 
-    CME_flags = [*zip(df_ICME.loc['2023']['ICME_start'], df_ICME.loc['2023']['ICME_end'])]
+    CME_flags = [*zip(df_ICME.loc[str(year_id)]['ICME_start'], df_ICME.loc[str(year_id)]['ICME_end'])]
 
     # Loop through ICME timing list and remove observations within CME start/end crossing period.
     df_temp = omni_data.copy()
@@ -47,8 +49,8 @@ if __name__ == "__main__":
     longitudes_to_test = [0,5]
 
     # specify date range of ensemble to load in
-    start_date = datetime.datetime(2023,1,1)
-    end_date = datetime.datetime(2024,1,1)
+    start_date = datetime.datetime(year_id,1,1)
+    end_date = datetime.datetime((year_id+1),1,1)
 
     # ensemble parameters
     ensemble_size = 100
