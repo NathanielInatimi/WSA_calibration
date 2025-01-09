@@ -338,7 +338,7 @@ def save_ens_to_cdf(ensemble_members, date_string, sigma_latitude, ensemble_size
 
     return
 
-def read_ens_cdf(date_string, sigma_latitude, ensemble_size, coronal_model):
+def read_ens_cdf(date_string, sigma_latitude, ensemble_size, coronal_model, year):
     """
     reads in netcdf4 file containing an ensemble
     saved files indexed by ensemble size, forecast start time, sigma_latitude, and the coronal model used to generate the ensemble
@@ -356,7 +356,7 @@ def read_ens_cdf(date_string, sigma_latitude, ensemble_size, coronal_model):
     date_num = re.sub('[-/_]','',date_string)
     
     # Create/find folder indexed by sigma_latitude, ensemble_size, and coronal_model
-    ens_dir_name = f'ens_{int(sigma_latitude)}_{ensemble_size}_{coronal_model}'
+    ens_dir_name = f'ens_{int(sigma_latitude)}_{ensemble_size}_{coronal_model}_{year}'
     ensemble_fname = f'ens_{int(sigma_latitude)}_{ensemble_size}_{coronal_model}_{date_num}.nc'
     #input_file = f'C:\\Users\\ct832900\\Desktop\\Research_Code\\WSA_calibration\\data\\ensembles\\{dir_name}\\{ensemble_fname}'
 
@@ -520,6 +520,7 @@ def perturb_longitude(longitudinal_disp, ensemble_member):
     # Interpolate ensemble member
     INT = scipy.interpolate.CubicSpline(ensemble_member.index, ensemble_member)
     ### Try a linear interpolation
+    #INT = scipy.interpolate.interp1d(ensemble_member.index, ensemble_member, kind='linear')
     
     # Shift index
     shifted_index = ensemble_member.index + time_shift
